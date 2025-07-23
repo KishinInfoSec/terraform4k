@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Reader</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .feed-form { margin-bottom: 20px; }
+        .article { border-bottom: 1px solid #ccc; padding: 10px 0; }
+        .article h3 { margin: 0; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>RSS Reader</h1>
+    <div class="feed-form">
+        <input type="text" id="feedUrl" placeholder="Enter RSS feed URL">
+        <button onclick="addFeed()">Add Feed</button>
+        <p id="error" class="error"></p>
+    </div>
+    <div id="articles"></div>
+
+    <script>
+        async function addFeed() {
+            const url = document.getElementById('feedUrl').value;
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '';
+            try {
+                const response = await fetch('/add_feed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `url=${encodeURIComponent(url)}`
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    document.getElementById('feedUrl').value = '';
+                    loadArticles();
+                } else {
+                    errorDiv.textContent = result.error;
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Failed to add feed';
+            }
+        }
+
+        async function loadArticles() {
+            const articlesDiv = document.getElementById('articles');
+            try {
+                const response = await fetch('/feeds');
+                const articles = await response.json();
+                articlesDiv.innerHTML = '';
+                articles.forEach(article => {
+                    const div = document.createElement('div');
+                    div.className = 'article';
+                    div.innerHTML = `
+                        <h3><a href="${article.link}" target="_blank">${article.title}</a></h3>
+                        <p>${article.description}</p>
+                        <small>${article.pub_date} | ${article.feed_url}</small>
+                    `;
+                    articlesDiv.appendChild(div);
+                });
+            } catch (error) {
+                articlesDiv.innerHTML = '<p>Failed to load articles</p>';
+            }
+        }
+
+        // Load articles on page load
+        loadArticles();
+    </script>
+</body>
+</html>
